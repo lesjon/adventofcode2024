@@ -1,8 +1,9 @@
+int[] program;
+
 class Computer {
     long a;
     long b;
     long c;
-    int[] program;
     int p = 0;
     List<Integer> out = new ArrayList<>();
 
@@ -11,7 +12,6 @@ class Computer {
         sb.append("a:").append(a).append("\n");
         sb.append("b:").append(b).append("\n");
         sb.append("c:").append(c).append("\n");
-        sb.append("program:").append(Arrays.toString(program)).append("\n");
         sb.append("p:").append(p).append("\n");
         sb.append("out:").append(out).append("\n");
         return sb.toString();
@@ -66,7 +66,7 @@ void main() throws Exception {
                 case String s when s.startsWith("Register B: ") -> computer.b = Integer.parseInt(s.substring(12));
                 case String s when s.startsWith("Register C: ") -> computer.c = Integer.parseInt(s.substring(12));
                 case String s when s.startsWith("Program: ") -> {
-                    computer.program = Arrays.stream(s.substring(9).split(","))
+                    program = Arrays.stream(s.substring(9).split(","))
                         .mapToInt(Integer::parseInt)
                         .toArray();
                 }
@@ -74,33 +74,31 @@ void main() throws Exception {
             };
         }
     );
-    var result = LongStream.range(0, Long.MAX_VALUE).map(i -> {
-        var testComputer = new Computer();
-        testComputer.a = i;
-        testComputer.b = computer.b;
-        testComputer.c = computer.c;
-        testComputer.program = computer.program;
-        while(testComputer.p < testComputer.program.length) {
-            // println(testComputer);
-            var outOption = testComputer.execute();
-            if(null == outOption){
-                continue;
+    var result = LongStream.range(0, Long.MAX_VALUE)
+        .parallel()
+        .map(i -> {
+            var testComputer = new Computer();
+            testComputer.a = i;
+            testComputer.b = computer.b;
+            testComputer.c = computer.c;
+            while(testComputer.p < program.length) {
+                var outOption = testComputer.execute();
+                if(null == outOption){
+                    continue;
+                }
+                if(outOption != program[testComputer.out.size()-1]){
+                    break;
+                }
+                if(testComputer.out.size() > program.length){
+                    break;
+                }
+                if(testComputer.out.size() == program.length){
+                    return i;
+                }
             }
-            if(outOption != testComputer.program[testComputer.out.size()-1]){
-                // println("outOption.get() != testComputer.program[testComputer.out.size(]-1).opcode" + outOption.get() +" "+ testComputer.program[testComputer.out.size(]-1).opcode);
-                break;
-            }
-            if(testComputer.out.size() > testComputer.program.length){
-                // println("testComputer.out.size() > testComputer.program.size()");
-                break;
-            }
-            if(testComputer.out.size() == testComputer.program.length){
-                return i;
-            }
-        }
-        return 0;
-    }).filter(i -> i != 0)
-    .findFirst().getAsLong();
+            return 0;
+        }).filter(i -> i != 0)
+        .findFirst().getAsLong();
     println(result);
     println("Execution time: " + (System.currentTimeMillis() - startTime));
 }
